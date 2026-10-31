@@ -443,3 +443,60 @@ test('sessionDisplayTitle reads the catalog display title', async () => {
   assert.equal(title(null, 's1'), null)
   assert.equal(title(catalog, null), null)
 })
+
+test('renderMarkdown renders inline and display LaTeX through KaTeX', async () => {
+  const { plugin } = await loadClient()
+  const { renderMarkdown } = plugin.__internals
+
+  const inline = renderMarkdown('质能方程 $E=mc^2$，以及 \\( \\pi r^2 \\)。')
+  assert.match(inline, /class="katex"/)
+  assert.doesNotMatch(inline, /\$E=mc\^2\$/)
+
+  const display = renderMarkdown('推导：\n\n$$\n\\int_{0}^{1} x^{2}\\,dx = \\frac{1}{3}\n$$')
+  assert.match(display, /dsn-math-block/)
+  assert.match(display, /katex-display/)
+
+  // 代码里的美元符号是字面量，不该被当成公式
+  const code = renderMarkdown('用 `$x$` 表示变量。')
+  assert.doesNotMatch(code, /class="katex"/)
+  assert.match(code, /<code>\$x\$<\/code>/)
+})
+
+test('renderMarkdown keeps money and bare dollar signs literal', async () => {
+  const { plugin } = await loadClient()
+  const { renderMarkdown } = plugin.__internals
+
+  for (const source of ['价格 $5 和 $6 不算公式。', '区间是 $5-$10。', '从 $3 到 $20 都是。']) {
+    assert.doesNotMatch(renderMarkdown(source), /class="katex"/, source)
+  }
+})
+
+test('renderMarkdown keeps an unclosed display fence from swallowing the rest', async () => {
+  const { plugin } = await loadClient()
+  const { renderMarkdown } = plugin.__internals
+
+  const html = renderMarkdown('$$\n没闭合的公式\n\n# 后面的标题\n\n正文段落')
+  assert.match(html, /<h1>后面的标题<\/h1>/)
+  assert.match(html, /正文段落/)
+  assert.doesNotMatch(html, /dsn-math-block/)
+})
+
+test('renderMarkdown breaks a display formula out of the paragraph around it', async () => {
+  const { plugin } = await loadClient()
+  const { renderMarkdown } = plugin.__internals
+
+  const html = renderMarkdown('前文$$x^2$$后文')
+  assert.match(html, /<p>前文<\/p>/)
+  assert.match(html, /<div class="dsn-math-block">/)
+  assert.match(html, /<p>后文<\/p>/)
+})
+
+test('renderMarkdown refuses to typeset an oversized formula', async () => {
+  const { plugin } = await loadClient()
+  const { renderMarkdown } = plugin.__internals
+
+  const huge = 'x+'.repeat(1500)
+  const html = renderMarkdown('$$' + huge + '$$')
+  assert.match(html, /dsn-math-error/)
+  assert.doesNotMatch(html, /class="katex"/)
+})

@@ -106,6 +106,19 @@ See [technical details](https://github.com/tryqylz/dsh-jingjing-sticky-notes/blo
   the newest note, with archived groups last;
 - A "Recycle bin" entry sits at the end of every list.
 
+### Math (new)
+- Standard LaTeX in a note body is typeset instead of shown verbatim: inline `$…$`, `\(…\)` and
+  display `$$…$$`, `\[…\]`, including matrices, cases and `aligned`; dollar signs inside code spans
+  and fenced code stay literal, and amounts such as `$5-$10` are not mistaken for formulas;
+- An unclosed `$$` only affects its own line instead of swallowing the body that follows; a `$$…$$`
+  glued to surrounding text still gets its own block; a single formula longer than 2000 characters is
+  shown verbatim so a huge expression cannot stall the panel;
+- The KaTeX runtime (`katex.min.js`) is inlined into `client.js`, while the layout styles and fonts
+  come from the same copy the DSH host page already loads globally, so math renders offline and in
+  both themes;
+- The trade-off is about +270 KB on `client.js` (~140 KB → ~410 KB). The plugin still has zero runtime
+  dependencies; see [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
+
 ### Detail view
 - The action bar sits at the top: insert whole note, insert selection, insert as file, copy,
   make global / move to workspace, move to the recycle bin;
